@@ -1,12 +1,23 @@
 import SwiftUI
 import Combine
+import AVFoundation
+import AudioToolbox
 
 // MARK: - TimerModel
 
 class TimerModel: ObservableObject {
+    enum AlertSound: String, CaseIterable, Identifiable {
+        case beep = "Beep"
+        case system1 = "System Sound 1000"
+        case system2 = "System Sound 1013"
+
+        var id: String { rawValue }
+    }
+
     @Published var isRunning = false
     @Published var timeRemaining: Int
     @Published var isWorkSession = true
+    @Published var alertSound: AlertSound = .beep
 
     var workDuration = 25 * 60
     var breakDuration = 5 * 60
@@ -14,6 +25,7 @@ class TimerModel: ObservableObject {
     private var timer: AnyCancellable?
 
     init() {
+        // start with a work session
         self.timeRemaining = workDuration
     }
 
@@ -43,65 +55,88 @@ class TimerModel: ObservableObject {
         if timeRemaining > 0 {
             timeRemaining -= 1
         } else {
+            // When timer reaches zero, switch sessions and play alert
             isWorkSession.toggle()
             timeRemaining = isWorkSession ? workDuration : breakDuration
+            playAlert()
+        }
+    }
+
+    private func playAlert() {
+        switch alertSound {
+            case .beep:
+                // system beep (new mail tone)
+                AudioServicesPlaySystemSound(1005)
+        case .system1:
+            AudioServicesPlaySystemSound(1000)
+              //took out line
+             
+        case .system2:
+            AudioServicesPlaySystemSound(1013)
+                //took out line
+           
         }
     }
 }
 
-// MARK: - ContentView (this is the view you will see)
+// MARK: - ContentView
 
 struct ContentView: View {
     @StateObject private var timerModel = TimerModel()
-    @AppStorage("isPaidUser") private var isPaidUser: Bool = false
 
-    // This property builds your UI.
     var body: some View {
-        VStack(spacing: 30) {
-            Text(timerModel.isWorkSession ? "Work Session" : "Break Session")
-                .font(.title)
-                .padding()
+        ZStack {
+            // Background image (add "WorkLifeBackground" image set in Assets)
+            Image("WorkLifeBackground")
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
 
-            // show minutes:seconds
-            Text("\(timerModel.timeRemaining / 60) : \(String(format: "%02d", timerModel.timeRemaining % 60))")
-                .font(.system(size: 60, weight: .bold, design: .monospaced))
-                .padding()
+            VStack(spacing: 30) {
+                Text(timerModel.isWorkSession ? "Work Session" : "Break Session")
+                    .font(.title)
+                    .padding()
 
-            // Start/Pause and Reset buttons
-            HStack {
-                Button(action: {
-                    timerModel.isRunning ? timerModel.pause() : timerModel.start()
-                }) {
-                    Text(timerModel.isRunning ? "Pause" : "Start")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                // Display minutes:seconds (e.g., 24:59)
+                Text("\(timerModel.timeRemaining / 60) : \(String(format: "%02d", timerModel.timeRemaining % 60))")
+                    .font(.system(size: 60, weight: .bold, design: .monospaced))
+                    .padding()
+
+                // Start/Pause and Reset buttons
+                HStack {
+                    Button(action: {
+                        timerModel.isRunning ? timerModel.pause() : timerModel.start()
+                    }) {
+                        Text(timerModel.isRunning ? "Pause" : "Start")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Button(action: {
+                        timerModel.reset()
+                    }) {
+                        Text("Reset")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal)
 
-                Button(action: {
-                    timerModel.reset()
-                }) {
-                    Text("Reset")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.gray)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            .padding(.horizontal)
-
-            // Free vs paid controls
-            if isPaidUser {
+                // Duration customisation controls
                 VStack(alignment: .leading) {
                     Text("Customize Durations (minutes)")
                         .font(.headline)
                     HStack {
-                        Text("Work").frame(width: 50, alignment: .leading)
+                        Text("Work")
+                            .frame(width: 50, alignment: .leading)
                         Slider(
                             value: Binding(
                                 get: { Double(timerModel.workDuration) / 60 },
@@ -112,15 +147,17 @@ struct ContentView: View {
                                     }
                                 }
                             ),
-                            in: 5...60,
+                            in: 1...60,
                             step: 1
+                            
                         )
                         .accentColor(.blue)
                         Text("\(timerModel.workDuration / 60)m")
                             .frame(width: 40, alignment: .trailing)
                     }
                     HStack {
-                        Text("Break").frame(width: 50, alignment: .leading)
+                        Text("Break")
+                            .frame(width: 50, alignment: .leading)
                         Slider(
                             value: Binding(
                                 get: { Double(timerModel.breakDuration) / 60 },
@@ -140,35 +177,32 @@ struct ContentView: View {
                     }
                 }
                 .padding()
-            } else {
-                Text("Upgrade to Premium to customize work/break durations.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
 
-                Button(action: {
-                    // TODO: implement real in‑app purchase
-                    isPaidUser = true
-                }) {
-                    Text("Upgrade")
-                        .padding()
-                        .background(Color.orange)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                // Alert sound picker
+                VStack(alignment: .leading) {
+                    Text("Alert Sound")
+                        .font(.headline)
+                    Picker("Alert Sound", selection: $timerModel.alertSound) {
+                        ForEach(TimerModel.AlertSound.allCases) { option in
+                            Text(option.rawValue).tag(option)
                 }
+                        
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                }
+                .padding()
             }
         }
-        .padding()
     }
 }
 
 // MARK: - App entry point
 
-
-// MARK: - Preview for the canvas (so you can see the phone preview)
-
-#Preview {
-    ContentView()
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
+
 
