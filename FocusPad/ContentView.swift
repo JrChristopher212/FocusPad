@@ -7,28 +7,56 @@ import AudioToolbox
 
 class TimerModel: ObservableObject {
     enum AlertSound: String, CaseIterable, Identifiable {
-        case beep = "Beep"
-        case system1 = "System Sound 1000"
-        case system2 = "System Sound 1013"
-
+        case beep          = "Beep 1005"
+        case system1000    = "Sound 1000"
+        case system1001    = "Sound 1001"
+        case system1002    = "Sound 1002"
+        case system1003    = "Sound 1003"
+        case system1004    = "Sound 1004"
+        case system1005    = "Sound 1005"
+        case system1006    = "Sound 1006"
+        case system1007    = "Sound 1007"
+        case system1013    = "Sound 1013"
+        
         var id: String { rawValue }
+        
+        /// Return the SystemSoundID associated with each sound.
+        var soundID: SystemSoundID {
+            switch self {
+            case .beep:        return 1005
+            case .system1000:  return 1000
+            case .system1001:  return 1001
+            case .system1002:  return 1002
+            case .system1003:  return 1003
+            case .system1004:  return 1004
+            case .system1005:  return 1005
+            case .system1006:  return 1006
+            case .system1007:  return 1007
+            case .system1013:  return 1013
+            }
+        }
     }
-
+    
     @Published var isRunning = false
     @Published var timeRemaining: Int
-    @Published var isWorkSession = true
     @Published var alertSound: AlertSound = .beep
-
-    var workDuration = 25 * 60
-    var breakDuration = 5 * 60
-
+    
+    /// Duration of the timer in seconds (default 25 minutes)
+    var workDuration: Int = 25 * 60 {
+        didSet {
+            // If the timer isn't running, update timeRemaining to match the new duration
+            if !isRunning {
+                timeRemaining = workDuration
+            }
+        }
+    }
+    
     private var timer: AnyCancellable?
-
+    
     init() {
-        // start with a work session
         self.timeRemaining = workDuration
     }
-
+    
     func start() {
         guard !isRunning else { return }
         isRunning = true
@@ -38,44 +66,31 @@ class TimerModel: ObservableObject {
                 self?.tick()
             }
     }
-
+    
     func pause() {
         isRunning = false
         timer?.cancel()
         timer = nil
     }
-
+    
     func reset() {
         pause()
-        timeRemaining = isWorkSession ? workDuration : breakDuration
+        timeRemaining = workDuration
     }
-
+    
     private func tick() {
         guard isRunning else { return }
         if timeRemaining > 0 {
             timeRemaining -= 1
         } else {
-            // When timer reaches zero, switch sessions and play alert
-            isWorkSession.toggle()
-            timeRemaining = isWorkSession ? workDuration : breakDuration
+            // When the timer finishes, stop it and play the alert
+            pause()
             playAlert()
         }
     }
-
+    
     private func playAlert() {
-        switch alertSound {
-            case .beep:
-                // system beep (new mail tone)
-                AudioServicesPlaySystemSound(1005)
-        case .system1:
-            AudioServicesPlaySystemSound(1000)
-              //took out line
-             
-        case .system2:
-            AudioServicesPlaySystemSound(1013)
-                //took out line
-           
-        }
+        AudioServicesPlaySystemSound(alertSound.soundID)
     }
 }
 
@@ -83,7 +98,7 @@ class TimerModel: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var timerModel = TimerModel()
-
+    
     var body: some View {
         ZStack {
             // Background image (add "WorkLifeBackground" image set in Assets)
@@ -91,107 +106,68 @@ struct ContentView: View {
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
-
+            
             VStack(spacing: 30) {
-                Text(timerModel.isWorkSession ? "Work Session" : "Break Session")
-                    .font(.title)
+                Text("Timer")
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .padding()
-
+                
                 // Display minutes:seconds (e.g., 24:59)
                 Text("\(timerModel.timeRemaining / 60) : \(String(format: "%02d", timerModel.timeRemaining % 60))")
                     .font(.system(size: 60, weight: .bold, design: .monospaced))
                     .padding()
-
-                // Start/Pause and Reset buttons
-                HStack {
-                    Button(action: {
-                        timerModel.isRunning ? timerModel.pause() : timerModel.start()
-                    }) {
-                        Text(timerModel.isRunning ? "Pause" : "Start")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-
-                    Button(action: {
-                        timerModel.reset()
-                    }) {
-                        Text("Reset")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.gray)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.horizontal)
-
-                // Duration customisation controls
+                
+                // Work duration slider
                 VStack(alignment: .leading) {
-                    Text("Customize Durations (minutes)")
+                    Text("Timer Duration (minutes)")
                         .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
                     HStack {
                         Text("Work")
                             .frame(width: 50, alignment: .leading)
                         Slider(
                             value: Binding(
-                                get: { Double(timerModel.workDuration) / 60 },
+                                get: { Double(timerModel.workDuration) / 60.0 },
                                 set: { newValue in
-                                    timerModel.workDuration = Int(newValue) * 60
-                                    if timerModel.isWorkSession {
-                                        timerModel.timeRemaining = timerModel.workDuration
-                                    }
+                                    timerModel.workDuration = Int(newValue * 60)
                                 }
                             ),
                             in: 1...60,
                             step: 1
-                            
                         )
                         .accentColor(.blue)
                         Text("\(timerModel.workDuration / 60)m")
                             .frame(width: 40, alignment: .trailing)
                     }
-                    HStack {
-                        Text("Break")
-                            .frame(width: 50, alignment: .leading)
-                        Slider(
-                            value: Binding(
-                                get: { Double(timerModel.breakDuration) / 60 },
-                                set: { newValue in
-                                    timerModel.breakDuration = Int(newValue) * 60
-                                    if !timerModel.isWorkSession {
-                                        timerModel.timeRemaining = timerModel.breakDuration
-                                    }
-                                }
-                            ),
-                            in: 1...30,
-                            step: 1
-                        )
-                        .accentColor(.green)
-                        Text("\(timerModel.breakDuration / 60)m")
-                            .frame(width: 40, alignment: .trailing)
-                    }
                 }
                 .padding()
-
-                // Alert sound picker
-                VStack(alignment: .leading) {
-                    Text("Alert Sound")
-                        .font(.headline)
-                    Picker("Alert Sound", selection: $timerModel.alertSound) {
-                        ForEach(TimerModel.AlertSound.allCases) { option in
-                            Text(option.rawValue).tag(option)
-                }
-                        
+                
+                // Single button with drop-down list of alert sounds
+                Menu {
+                    // Provide all 10 sound options
+                    ForEach(TimerModel.AlertSound.allCases) { option in
+                        Button(option.rawValue) {
+                            timerModel.alertSound = option
+                        }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                    
+                } label: {
+                    // Visible button that starts or pauses the timer
+                    Text(timerModel.isRunning ? "Pause Timer" : "Start Timer")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                } primaryAction: {
+                    // Primary action: toggle start/pause when tapped
+                    if timerModel.isRunning {
+                        timerModel.pause()
+                    } else {
+                        timerModel.start()
+                    }
                 }
-                .padding()
+                .padding(.horizontal)
             }
         }
     }
@@ -204,5 +180,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
-
 
