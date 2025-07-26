@@ -43,6 +43,11 @@ class TimerModel: ObservableObject {
     @Published var timeRemaining: Int
     @Published var alertSound: AlertSound = .beep
     
+   //System sound IDs to play at 1 minute, 30 seconds, and 15 seconds
+    var oneMinuteSoundID: SystemSoundID = 1013
+    var thirtySecondSoundID: SystemSoundID = 1009
+    var fifteenSecondSoundID: SystemSoundID = 1005
+    
     /// Duration of the timer in seconds (default 25 minutes)
     var workDuration: Int = 25 * 60 {
         didSet {
@@ -82,14 +87,27 @@ class TimerModel: ObservableObject {
     
     private func tick() {
         guard isRunning else { return }
+
         if timeRemaining > 0 {
             timeRemaining -= 1
+
+            // Check for reminder thresholds
+            switch timeRemaining {
+            case 60:
+                AudioServicesPlaySystemSound(oneMinuteSoundID)      // 1 minute left
+            case 30:
+                AudioServicesPlaySystemSound(thirtySecondSoundID)   // 30 seconds left
+            case 15:
+                AudioServicesPlaySystemSound(fifteenSecondSoundID)  // 15 seconds left
+            default:
+                break
+            }
         } else {
-            // When the timer finishes, stop it and play the alert
             pause()
-            playAlert()
+            playAlert()  // Final alert at 0
         }
     }
+
     
     private func playAlert() {
         AudioServicesPlaySystemSound(alertSound.soundID)
