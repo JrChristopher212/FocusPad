@@ -144,29 +144,44 @@ struct ContentView: View {
                 .padding()
                 
                 // Single button with drop-down list of alert sounds
-                Menu {
-                    // Provide all 10 sound options
-                    ForEach(TimerModel.AlertSound.allCases) { option in
-                        Button(option.rawValue) {
-                            timerModel.alertSound = option
+                // Replace the old Menu block with this:
+                HStack {
+                    // Start/Pause button with drop‑down sound options
+                    Menu {
+                        ForEach(TimerModel.AlertSound.allCases) { option in
+                            Button(option.rawValue) {
+                                timerModel.alertSound = option
+                            }
+                        }
+                    } label: {
+                        Text(timerModel.isRunning ? "Pause Timer" : "Start Timer")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    } primaryAction: {
+                        if timerModel.isRunning {
+                            timerModel.pause()
+                        } else {
+                            timerModel.start()
                         }
                     }
-                } label: {
-                    // Visible button that starts or pauses the timer
-                    Text(timerModel.isRunning ? "Pause Timer" : "Start Timer")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                } primaryAction: {
-                    // Primary action: toggle start/pause when tapped
-                    if timerModel.isRunning {
-                        timerModel.pause()
-                    } else {
-                        timerModel.start()
+
+                    // Reset button
+                    Button(action: {
+                        timerModel.reset()
+                    }) {
+                        Text("Reset")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
                     }
                 }
+                .padding(.horizontal)
+
                 .padding(.horizontal)
             }
         }
