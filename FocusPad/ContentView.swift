@@ -8,15 +8,16 @@ import AudioToolbox
 class TimerModel: ObservableObject {
     enum AlertSound: String, CaseIterable, Identifiable {
         case beep          = "Beep 1005"
-        case system1000    = "Sound 1000"
-        case system1001    = "Sound 1001"
-        case system1002    = "Sound 1002"
-        case system1003    = "Sound 1003"
-        case system1004    = "Sound 1004"
-        case system1005    = "Sound 1005"
-        case system1006    = "Sound 1006"
-        case system1007    = "Sound 1007"
-        case system1013    = "Sound 1013"
+        case system1031    = "Chime 1031"
+        case system1014    = "Blerr 1014"
+        case system1020    = "Climb 1020"
+        case system1024    = "Train 1024"
+        case system1027    = "DumDum 1027"
+        case system1028    = "Tink 1028"
+        case system1030    = "Trumpet 1030"
+        case system1032    = "Ominous 1032"
+        case system1035    = "DumDum 1035"
+        case system1036    = "TutTut 1036"
         
         var id: String { rawValue }
         
@@ -24,15 +25,16 @@ class TimerModel: ObservableObject {
         var soundID: SystemSoundID {
             switch self {
             case .beep:        return 1005
-            case .system1000:  return 1000
-            case .system1001:  return 1001
-            case .system1002:  return 1002
-            case .system1003:  return 1003
-            case .system1004:  return 1004
-            case .system1005:  return 1005
-            case .system1006:  return 1006
-            case .system1007:  return 1007
-            case .system1013:  return 1013
+            case .system1031:  return 1031
+            case .system1014:  return 1014
+            case .system1020:  return 1020
+            case .system1024:  return 1024
+            case .system1027:  return 1027
+            case .system1028:  return 1028
+            case .system1030:  return 1030
+            case .system1032:  return 1032
+            case .system1035:  return 1035
+            case .system1036:  return 1036
             }
         }
     }
