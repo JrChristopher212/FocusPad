@@ -217,7 +217,7 @@ struct ContentView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(height: 120)        // adjust as needed
-                    .padding(.top, 70)
+                    .padding(.top, 100)
 
                 .padding(.horizontal)
             }
