@@ -127,7 +127,15 @@ struct ContentView: View {
                 .scaledToFill()
                 .ignoresSafeArea()
             
-            VStack(spacing: 30) {
+            VStack(spacing: 20) {
+                
+                Image("HelensNameCropped")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 100)
+                    .padding(.top, 10)
+                   
+                
                 Text("Timer")
                     .font(.title2)
                     .fontWeight(.bold)
@@ -160,6 +168,7 @@ struct ContentView: View {
                         Text("\(timerModel.workDuration / 60)m")
                             .frame(width: 40, alignment: .trailing)
                     }
+
                 }
                 .padding()
                 
@@ -199,8 +208,16 @@ struct ContentView: View {
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
+                    
+                   
                 }
                 .padding(.horizontal)
+                
+                Image("SpiritAndPollenLogoLight")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 120)        // adjust as needed
+                    .padding(.top, 70)
 
                 .padding(.horizontal)
             }
